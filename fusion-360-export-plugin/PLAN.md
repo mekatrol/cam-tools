@@ -3,6 +3,10 @@
 > Status: **Setup phase / Milestone A complete (2026-11-21).** Milestones B-E and
 > source-model extraction Phases 0-6 remain pending.
 
+## 0. Prerequisites
+
+Read AGENTS.md before commencing any steps in this plan.
+
 ## 1. Objective and non-negotiable constraints
 
 Build a Python script for Autodesk Fusion that exports the active design to a

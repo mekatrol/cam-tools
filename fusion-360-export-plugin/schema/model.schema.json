@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/neutral-parametric-model/1.0.0/model.schema.json",
+  "title": "Neutral parametric model document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "document", "conventions", "parameters", "resources", "definitions", "instances", "construction", "operations", "results", "relationships", "diagnostics", "coverage", "integrity"],
+  "properties": {
+    "format": {"$ref": "#/$defs/format"},
+    "document": {"$ref": "#/$defs/document"},
+    "conventions": {"$ref": "#/$defs/conventions"},
+    "parameters": {"type": "array", "items": {"$ref": "#/$defs/parameter"}},
+    "resources": {"type": "array", "items": {"$ref": "#/$defs/entity"}},
+    "definitions": {"type": "array", "items": {"$ref": "#/$defs/definition"}},
+    "instances": {"type": "array", "items": {"$ref": "#/$defs/instance"}},
+    "construction": {"type": "array", "items": {"$ref": "#/$defs/geometry"}},
+    "operations": {"type": "array", "items": {"$ref": "#/$defs/operation"}},
+    "results": {"type": "array", "items": {"$ref": "#/$defs/entity"}},
+    "relationships": {"type": "array", "items": {"$ref": "#/$defs/entity"}},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+    "coverage": {"$ref": "#/$defs/coverage"},
+    "integrity": {"$ref": "#/$defs/integrity"}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*:[a-zA-Z0-9._-]+$"},
+    "finiteNumber": {"type": "number"},
+    "neutralValue": {
+      "oneOf": [
+        {"type": ["null", "boolean", "integer", "number", "string"]},
+        {"type": "array", "items": {"$ref": "#/$defs/neutralValue"}},
+        {"type": "object", "additionalProperties": {"$ref": "#/$defs/neutralValue"}}
+      ]
+    },
+    "extensionMap": {"type": "object", "additionalProperties": {"$ref": "#/$defs/neutralValue"}},
+    "status": {"enum": ["exact", "complete_with_fallback", "approximated", "unclassified"]},
+    "format": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "version", "generator_version"],
+      "properties": {
+        "name": {"const": "neutral_parametric_model"},
+        "version": {"type": "string", "pattern": "^1\\.0\\.0$"},
+        "generator_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"}
+      }
+    },
+    "document": {
+      "type": "object", "additionalProperties": false,
+      "required": ["title", "description", "created_at", "modified_at", "properties"],
+      "properties": {
+        "title": {"type": "string"}, "description": {"type": "string"},
+        "created_at": {"type": ["string", "null"], "format": "date-time"},
+        "modified_at": {"type": ["string", "null"], "format": "date-time"},
+        "properties": {"$ref": "#/$defs/extensionMap"}
+      }
+    },
+    "conventions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["handedness", "length_unit", "angle_unit", "up_axis", "forward_axis", "numeric_precision", "tolerance", "colour_encoding"],
+      "properties": {
+        "handedness": {"const": "right"}, "length_unit": {"const": "millimetre"},
+        "angle_unit": {"const": "radian"}, "up_axis": {"enum": ["positive_x", "positive_y", "positive_z"]},
+        "forward_axis": {"enum": ["positive_x", "positive_y", "positive_z", "negative_x", "negative_y", "negative_z"]},
+        "numeric_precision": {"type": "integer", "minimum": 1},
+        "tolerance": {"$ref": "#/$defs/finiteNumber"}, "colour_encoding": {"const": "srgb"}
+      }
+    },
+    "expression": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "value", "children"],
+      "properties": {"kind": {"type": "string"}, "value": {"type": ["null", "boolean", "integer", "number", "string"]}, "children": {"type": "array", "items": {"$ref": "#/$defs/expression"}}}
+    },
+    "parameter": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "value", "dimension", "unit", "expression", "dependencies", "comment", "exposed"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "label": {"type": "string"}, "value": {"type": ["null", "boolean", "integer", "number", "string"]},
+        "dimension": {"type": "string"}, "unit": {"type": "string"}, "expression": {"oneOf": [{"$ref": "#/$defs/expression"}, {"type": "null"}]},
+        "dependencies": {"type": "array", "items": {"$ref": "#/$defs/id"}, "uniqueItems": true}, "comment": {"type": "string"}, "exposed": {"type": "boolean"}
+      }
+    },
+    "entity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "kind", "status", "properties", "references"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "kind": {"type": "string"}, "status": {"$ref": "#/$defs/status"}, "properties": {"$ref": "#/$defs/extensionMap"}, "references": {"type": "array", "items": {"$ref": "#/$defs/id"}, "uniqueItems": true}}
+    },
+    "definition": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "construction_ids", "operation_ids", "result_ids", "properties"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "label": {"type": "string"}, "construction_ids": {"type": "array", "items": {"$ref": "#/$defs/id"}}, "operation_ids": {"type": "array", "items": {"$ref": "#/$defs/id"}}, "result_ids": {"type": "array", "items": {"$ref": "#/$defs/id"}}, "properties": {"$ref": "#/$defs/extensionMap"}}
+    },
+    "transform": {"type": "object", "additionalProperties": false, "required": ["matrix"], "properties": {"matrix": {"type": "array", "minItems": 16, "maxItems": 16, "items": {"$ref": "#/$defs/finiteNumber"}}}},
+    "instance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "definition_id", "label", "transform", "parent_id", "visible", "suppressed", "grounded", "quantity"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "definition_id": {"$ref": "#/$defs/id"}, "label": {"type": "string"}, "transform": {"$ref": "#/$defs/transform"}, "parent_id": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]}, "visible": {"type": "boolean"}, "suppressed": {"type": "boolean"}, "grounded": {"type": "boolean"}, "quantity": {"type": "integer", "minimum": 1}}
+    },
+    "geometry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "kind", "properties"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "kind": {"type": "string"}, "properties": {"$ref": "#/$defs/extensionMap"}}
+    },
+    "operation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "kind", "label", "sequence", "status", "enabled", "inputs", "outputs", "target_bodies", "mode", "parameters", "diagnostic_codes"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "kind": {"type": "string"}, "label": {"type": "string"}, "sequence": {"type": "integer", "minimum": 0}, "status": {"$ref": "#/$defs/status"}, "enabled": {"type": "boolean"}, "inputs": {"type": "array", "items": {"$ref": "#/$defs/id"}}, "outputs": {"type": "array", "items": {"$ref": "#/$defs/id"}}, "target_bodies": {"type": "array", "items": {"$ref": "#/$defs/id"}}, "mode": {"type": "string"}, "parameters": {"$ref": "#/$defs/extensionMap"}, "diagnostic_codes": {"type": "array", "items": {"type": "string"}}}
+    },
+    "diagnostic": {
+      "type": "object", "additionalProperties": false,
+      "required": ["code", "severity", "message", "entity_id", "importer_guidance"],
+      "properties": {"code": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]+$"}, "severity": {"enum": ["information", "warning", "error"]}, "message": {"type": "string"}, "entity_id": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]}, "importer_guidance": {"type": ["string", "null"]}}
+    },
+    "coverage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["exact", "complete_with_fallback", "approximated", "unclassified"],
+      "properties": {"exact": {"type": "integer", "minimum": 0}, "complete_with_fallback": {"type": "integer", "minimum": 0}, "approximated": {"type": "integer", "minimum": 0}, "unclassified": {"type": "integer", "minimum": 0}}
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["algorithm", "canonical_hash", "counts"],
+      "properties": {"algorithm": {"const": "sha256"}, "canonical_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}}}
+    }
+  }
+}

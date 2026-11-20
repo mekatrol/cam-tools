@@ -1,0 +1,7 @@
+{
+  "include": ["src", "scripts"],
+  "exclude": [".venv"],
+  "extraPaths": ["src/MekatrolModelExporter"],
+  "pythonVersion": "3.14",
+  "typeCheckingMode": "standard"
+}

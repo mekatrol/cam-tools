@@ -1,0 +1,16 @@
+{
+  "construction": [],
+  "conventions": {"angle_unit": "radian", "colour_encoding": "srgb", "forward_axis": "positive_y", "handedness": "right", "length_unit": "millimetre", "numeric_precision": 17, "tolerance": 0.000001, "up_axis": "positive_z"},
+  "coverage": {"approximated": 0, "complete_with_fallback": 0, "exact": 2, "unclassified": 0},
+  "definitions": [{"construction_ids": [], "id": "definition:root", "label": "Root definition", "operation_ids": [], "properties": {}, "result_ids": ["body:sample"]}],
+  "diagnostics": [],
+  "document": {"created_at": null, "description": "Minimal authored contract example", "modified_at": null, "properties": {}, "title": "Minimal model"},
+  "format": {"generator_version": "0.2.0", "name": "neutral_parametric_model", "version": "1.0.0"},
+  "instances": [{"definition_id": "definition:root", "grounded": true, "id": "instance:root", "label": "Root", "parent_id": null, "quantity": 1, "suppressed": false, "transform": {"matrix": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]}, "visible": true}],
+  "integrity": {"algorithm": "sha256", "canonical_hash": "97fceee65404cce4097f17592d25a2f9ae955ac9ce213b7bf49c09f2b2d10707", "counts": {"construction": 0, "definitions": 1, "diagnostics": 0, "instances": 1, "operations": 0, "parameters": 0, "relationships": 0, "resources": 0, "results": 1}},
+  "operations": [],
+  "parameters": [],
+  "relationships": [],
+  "resources": [],
+  "results": [{"id": "body:sample", "kind": "body", "properties": {"manifold_state": "closed"}, "references": [], "status": "exact"}]
+}

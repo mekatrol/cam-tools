@@ -1,7 +1,7 @@
 # Mekatrol product-neutral parametric model exporter: implementation plan
 
-> Status: **Setup phase / Milestone A complete (2026-11-21).** Milestones B-E and
-> source-model extraction Phases 0-6 remain pending.
+> Status: **Milestones A-B complete (2026-11-21).** Milestones C-E and source-model
+> extraction Phases 0-6 remain pending.
 
 ## 0. Prerequisites
 
@@ -389,11 +389,11 @@ counts until automated testing is explicitly introduced.
   copied to the host scripts folder. The bootstrap is ready but needs local CPython 3.14;
   the host dialog requires manual confirmation in Fusion.
 
-### Milestone B — neutral contract — PENDING
+### Milestone B — neutral contract — COMPLETE (2026-11-21)
 
-- Add typed domain records, schema, example JSON, deterministic serializer, and
+- [x] Add typed domain records, schema, example JSON, deterministic serializer, and
   integrity validator.
-- Gate: examples validate; domain and schema terminology audit finds no product
+- [x] Gate: examples validate; domain and schema terminology audit finds no product
   or vendor-specific names.
 
 ### Milestone C — core capture — PENDING

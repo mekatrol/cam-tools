@@ -7,8 +7,8 @@ src = ["src"]
 select = ["A", "ANN", "ARG", "B", "BLE", "C4", "E", "EM", "ERA", "EXE", "F", "FA", "FBT", "G", "I", "ICN", "INP", "ISC", "LOG", "N", "PERF", "PIE", "PL", "PTH", "PYI", "Q", "RET", "RSE", "RUF", "S", "SIM", "SLF", "T10", "T20", "TC", "TRY", "UP", "W"]
 
 [tool.ruff.lint.per-file-ignores]
-# The host entry boundary must report every script failure through the UI.
-"src/MekatrolModelExporter/entrypoint.py" = ["BLE001"]
+# The host entry boundary reports every failure and its Protocols preserve published API names.
+"src/MekatrolModelExporter/entrypoint.py" = ["BLE001", "N802"]
 # Fusion requires the entry module and runtime folder to share the display name.
 "src/MekatrolModelExporter/MekatrolModelExporter.py" = ["N999"]
 "src/MekatrolModelExporter/__init__.py" = ["N999"]

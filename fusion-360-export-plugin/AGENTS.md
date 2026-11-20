@@ -7,6 +7,10 @@ These rules apply to every file under this directory.
 - All Python code must conform to the Ruff configuration in `pyproject.toml`.
 - Before completing a code change, run `ruff check .` and
   `ruff format --check .`; fix all findings rather than weakening rules.
+- Before completing a code change, ensure Pylance reports no errors in changed
+  Python files. Add or refine strongly typed, development-only stubs for
+  unavailable host APIs instead of suppressing missing-import, unknown-type, or
+  unknown-member diagnostics.
 - Keep public and internal interfaces strongly typed. Do not add untyped public
   functions, blanket `Any`, wildcard imports, blanket `noqa`, or unchecked casts.
 - Prefer immutable domain records, small single-purpose modules, explicit error

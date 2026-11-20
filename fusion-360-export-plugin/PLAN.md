@@ -1,4 +1,7 @@
-# Product-neutral parametric model exporter: implementation plan
+# Mekatrol product-neutral parametric model exporter: implementation plan
+
+> Status: **Setup phase / Milestone A complete (2026-11-21).** Milestones B-E and
+> source-model extraction Phases 0-6 remain pending.
 
 ## 1. Objective and non-negotiable constraints
 
@@ -109,9 +112,9 @@ entry point so conversion to a persistent add-in later is small.
 Planned runtime layout:
 
 ```text
-src/model_exchange_exporter/
-|-- ModelExchangeExporter.py        # host-required run(context) entry point
-|-- ModelExchangeExporter.manifest  # type: script, Windows support initially
+src/MekatrolModelExporter/
+|-- MekatrolModelExporter.py        # host-required run(context) entry point
+|-- MekatrolModelExporter.manifest  # type: script, Windows support initially
 |-- entrypoint.py                   # exception boundary and UI interaction
 |-- application/
 |   |-- export_service.py           # orchestration and progress/report result
@@ -152,15 +155,15 @@ Create `scripts/install-plugin.ps1` with `SupportsShouldProcess` and these rules
 1. Compute the source from the repository; do not depend on the caller's working
    directory.
 2. Resolve the destination from
-   `$env:APPDATA\Autodesk\Autodesk Fusion 360\API\Scripts\ModelExchangeExporter`.
+   `$env:APPDATA\Autodesk\Autodesk Fusion 360\API\Scripts\MekatrolModelExporter`.
 3. Fail if `APPDATA` is missing, the source manifest is missing, or paths resolve
    unexpectedly.
 4. Stage into a sibling temporary directory, excluding `.venv`, caches, editor
    files, plans, development configuration, and bytecode.
 5. Validate the staged manifest and entry module.
 6. Replace only the named plugin folder, with `-WhatIf` support. If an existing
-   installation exists, rename it to a timestamped backup before the swap and
-   restore it on failure.
+   installation exists, delete it after the staged copy passes validation, then
+   install the staged copy cleanly. Do not retain backups.
 7. Print the exact installed path and the steps to refresh/run the script.
 
 Support optional `-DestinationRoot` for controlled development installs, while
@@ -251,7 +254,7 @@ must be replaced with generated neutral IDs before serialization.
 
 ### 6.5 Schema and versioning
 
-Create `schema/model-exchange.schema.json` using JSON Schema 2020-12. Keep
+Create `schema/model.schema.json` using JSON Schema 2020-12. Keep
 `additionalProperties: false` for specified records and provide explicit
 extension maps containing only neutral values. Version the format semantically:
 additive fields are minor changes; changed meaning or removed fields require a
@@ -373,36 +376,37 @@ counts until automated testing is explicitly introduced.
 
 ## 9. Implementation milestones and completion gates
 
-### Milestone A — developer baseline
+### Milestone A — developer baseline — COMPLETE (2026-11-21)
 
-- Add environment, requirements, VS Code, Ruff, ignore, README, and deployment
+- [x] Add environment, requirements, VS Code, Ruff, ignore, README, and deployment
   files.
-- Add runnable Hello World script and manifest.
-- Gate: clean bootstrap, both Ruff commands pass, deploy works with `-WhatIf`,
-  and manual host run succeeds.
+- [x] Add runnable Hello World script and manifest with the `Mekatrol` prefix.
+- [x] Gate: deployment works with `-WhatIf`, both Ruff commands pass, and the runtime is
+  copied to the host scripts folder. The bootstrap is ready but needs local CPython 3.14;
+  the host dialog requires manual confirmation in Fusion.
 
-### Milestone B — neutral contract
+### Milestone B — neutral contract — PENDING
 
 - Add typed domain records, schema, example JSON, deterministic serializer, and
   integrity validator.
 - Gate: examples validate; domain and schema terminology audit finds no product
   or vendor-specific names.
 
-### Milestone C — core capture
+### Milestone C — core capture — PENDING
 
 - Add hierarchy, units, parameters, construction geometry, sketches, common
   operations, and evaluated B-rep readers.
 - Gate: initial smoke models export with complete reference graphs and explicit
   coverage summaries.
 
-### Milestone D — breadth and robustness
+### Milestone D — breadth and robustness — PENDING
 
 - Add remaining operation families, assembly relationships, appearances,
   configurations, fallbacks, progress, cancellation, and atomic writes.
 - Gate: no encountered entity disappears silently; interruption leaves no
   partial destination file.
 
-### Milestone E — importer hand-off contract
+### Milestone E — importer hand-off contract — PENDING
 
 - Publish format versioning, importer guidance, replay ordering, selection
   resolution policy, fidelity metrics, and migration diagnostics.

@@ -1,0 +1,8 @@
+{
+  "autodeskProduct": "Fusion360",
+  "type": "script",
+  "author": "Mekatrol",
+  "description": {"": "Mekatrol product-neutral model exporter"},
+  "supportedOS": "windows",
+  "editEnabled": true
+}

@@ -1,0 +1,21 @@
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["A", "ANN", "ARG", "B", "BLE", "C4", "E", "EM", "ERA", "EXE", "F", "FA", "FBT", "G", "I", "ICN", "INP", "ISC", "LOG", "N", "PERF", "PIE", "PL", "PTH", "PYI", "Q", "RET", "RSE", "RUF", "S", "SIM", "SLF", "T10", "T20", "TC", "TRY", "UP", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# The host entry boundary must report every script failure through the UI.
+"src/MekatrolModelExporter/entrypoint.py" = ["BLE001"]
+# Fusion requires the entry module and runtime folder to share the display name.
+"src/MekatrolModelExporter/MekatrolModelExporter.py" = ["N999"]
+"src/MekatrolModelExporter/__init__.py" = ["N999"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["entrypoint"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

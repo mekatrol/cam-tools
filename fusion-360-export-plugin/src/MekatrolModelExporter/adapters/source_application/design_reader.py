@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import adsk.core
 import adsk.fusion
+from application.export_service import CaptureCancelledError
 from domain.diagnostics import Coverage, Diagnostic
 from domain.document import (
     Conventions,
@@ -29,6 +30,8 @@ from .value_reader import finite, matrix_transform, property_map
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from application.ports import ProgressReporter
+
 
 class UnsupportedDesignError(RuntimeError):
     """Raised when no supported parametric design is active."""
@@ -36,6 +39,7 @@ class UnsupportedDesignError(RuntimeError):
 
 @dataclass(slots=True)
 class _CaptureState:
+    progress: ProgressReporter
     identities: IdentityMap = field(default_factory=IdentityMap)
     parameters: list[Parameter] = field(default_factory=list)
     definitions: list[Definition] = field(default_factory=list)
@@ -43,7 +47,19 @@ class _CaptureState:
     construction: list[GeometryRecord] = field(default_factory=list)
     operations: list[Operation] = field(default_factory=list)
     results: list[EntityRecord] = field(default_factory=list)
+    resources: list[EntityRecord] = field(default_factory=list)
+    relationships: list[EntityRecord] = field(default_factory=list)
+    configurations: list[EntityRecord] = field(default_factory=list)
     diagnostics: list[Diagnostic] = field(default_factory=list)
+    completed: int = 0
+    estimated_total: int = 1
+
+    def advance(self, activity: str) -> None:
+        """Publish progress and stop promptly after cancellation."""
+        self.completed += 1
+        self.progress.update(self.completed, self.estimated_total, activity)
+        if self.progress.cancelled:
+            raise CaptureCancelledError
 
 
 def _items[T](collection: adsk.core.ObjectCollection[T]) -> Iterable[T]:
@@ -62,7 +78,7 @@ class ActiveDesignReader:
         """Create a reader for the currently running host application."""
         return cls(adsk.core.Application.get())
 
-    def capture(self) -> ModelDocument:
+    def capture(self, progress: ProgressReporter) -> ModelDocument:
         """Capture hierarchy, parameters, sketches, history, and evaluated bodies."""
         design = adsk.fusion.Design.cast(self.application.activeProduct)
         if design is None:
@@ -72,7 +88,15 @@ class ActiveDesignReader:
             message = "The active design does not retain parametric history"
             raise UnsupportedDesignError(message)
 
-        state = _CaptureState()
+        state = _CaptureState(progress=progress)
+        state.estimated_total = max(
+            1,
+            design.allParameters.count
+            + design.timeline.count
+            + design.rootComponent.sketches.count
+            + design.rootComponent.bRepBodies.count
+            + design.rootComponent.occurrences.count,
+        )
         self._read_parameters(design, state)
         root_id = self._read_component(design.rootComponent, state)
         state.instances.append(
@@ -86,7 +110,17 @@ class ActiveDesignReader:
         )
         self._read_occurrences(design.rootComponent.occurrences, "instance:root", state)
         self._read_history(design, state)
-        statuses = [item.status for item in (*state.operations, *state.results)]
+        self._read_advanced_state(design, state)
+        statuses = [
+            item.status
+            for item in (
+                *state.resources,
+                *state.operations,
+                *state.results,
+                *state.relationships,
+                *state.configurations,
+            )
+        ]
         coverage = Coverage(
             exact=statuses.count(CaptureStatus.EXACT),
             complete_with_fallback=statuses.count(CaptureStatus.COMPLETE_WITH_FALLBACK),
@@ -95,21 +129,25 @@ class ActiveDesignReader:
         )
         title = self.application.activeDocument.name
         return ModelDocument(
-            format=FormatInfo("neutral_parametric_model", "1.0.0", "0.3.0"),
+            format=FormatInfo("neutral_parametric_model", "1.1.0", "0.4.0"),
             document=DocumentInfo(title=title, modified_at=datetime.now(UTC).isoformat()),
             conventions=Conventions(),
             parameters=tuple(state.parameters),
+            resources=tuple(state.resources),
             definitions=tuple(state.definitions),
             instances=tuple(state.instances),
             construction=tuple(state.construction),
             operations=tuple(state.operations),
             results=tuple(state.results),
+            relationships=tuple(state.relationships),
+            configurations=tuple(state.configurations),
             diagnostics=tuple(state.diagnostics),
             coverage=coverage,
         )
 
     def _read_parameters(self, design: adsk.fusion.Design, state: _CaptureState) -> None:
         for source in _items(design.allParameters):
+            state.advance("Capturing parameters")
             parameter_id = state.identities.id_for("parameter", source.entityToken or source.name)
             expression = (
                 ExpressionNode("source_expression", source.expression)
@@ -154,6 +192,7 @@ class ActiveDesignReader:
         state: _CaptureState,
     ) -> None:
         for source in _items(occurrences):
+            state.advance("Capturing assembly hierarchy")
             definition_id = self._read_component(source.component, state)
             instance_id = state.identities.id_for(
                 "instance", source.entityToken or source.fullPathName
@@ -175,6 +214,7 @@ class ActiveDesignReader:
     def _read_sketches(self, component: adsk.fusion.Component, state: _CaptureState) -> list[str]:
         identifiers: list[str] = []
         for sketch in _items(component.sketches):
+            state.advance("Capturing construction geometry")
             identifier = state.identities.id_for("sketch", sketch.entityToken or sketch.name)
             identifiers.append(identifier)
             state.construction.append(
@@ -198,6 +238,7 @@ class ActiveDesignReader:
     def _read_bodies(self, component: adsk.fusion.Component, state: _CaptureState) -> list[str]:
         identifiers: list[str] = []
         for body in _items(component.bRepBodies):
+            state.advance("Capturing evaluated bodies")
             identifier = state.identities.id_for("body", body.entityToken or body.name)
             identifiers.append(identifier)
             box = body.boundingBox
@@ -222,10 +263,12 @@ class ActiveDesignReader:
                 }
             )
             state.results.append(EntityRecord(identifier, "body", properties=properties))
+            self._read_body_appearance(body, identifier, state)
         return identifiers
 
     def _read_history(self, design: adsk.fusion.Design, state: _CaptureState) -> None:
         for sequence, timeline_object in enumerate(_items(design.timeline)):
+            state.advance("Capturing construction history")
             source = timeline_object.entity
             token = source.entityToken if source is not None else f"timeline-{sequence}"
             identifier = state.identities.id_for("operation", token)
@@ -261,10 +304,112 @@ class ActiveDesignReader:
                 )
             )
 
+    def _read_body_appearance(
+        self, body: adsk.fusion.BRepBody, body_id: str, state: _CaptureState
+    ) -> None:
+        try:
+            appearance = body.appearance
+        except AttributeError, RuntimeError:
+            appearance = None
+        if appearance is None:
+            return
+        resource_id = state.identities.id_for("appearance", appearance.id or appearance.name)
+        if not any(item.id == resource_id for item in state.resources):
+            state.resources.append(
+                EntityRecord(
+                    resource_id,
+                    "appearance",
+                    properties=property_map(
+                        {
+                            "label": appearance.name,
+                            "model": "physically_based",
+                            "source_properties_available": False,
+                        }
+                    ),
+                    status=CaptureStatus.COMPLETE_WITH_FALLBACK,
+                )
+            )
+            state.diagnostics.append(
+                Diagnostic(
+                    "capture.appearance_fallback",
+                    Severity.INFORMATION,
+                    "A visual assignment was retained without decoded channel values.",
+                    resource_id,
+                    "Preserve the assignment and use evaluated display data when available.",
+                )
+            )
+        state.relationships.append(
+            EntityRecord(
+                state.identities.id_for("relationship", f"appearance:{body_id}"),
+                "visual_assignment",
+                properties=property_map({"scope": "body"}),
+                references=(body_id, resource_id),
+            )
+        )
+
+    def _read_advanced_state(self, design: adsk.fusion.Design, state: _CaptureState) -> None:
+        self._read_joints(design.rootComponent, state)
+        try:
+            configurations = design.configurations
+        except AttributeError:
+            state.diagnostics.append(
+                Diagnostic(
+                    "capture.configurations_unavailable",
+                    Severity.INFORMATION,
+                    "Configuration state is not exposed by this runtime.",
+                    importer_guidance="Treat the captured state as the default variant.",
+                )
+            )
+            return
+        for source in _items(configurations):
+            state.advance("Capturing configurations")
+            identifier = state.identities.id_for("configuration", source.entityToken or source.name)
+            state.configurations.append(
+                EntityRecord(
+                    identifier,
+                    "configuration",
+                    properties=property_map({"label": source.name, "active": source.isActive}),
+                    status=CaptureStatus.COMPLETE_WITH_FALLBACK,
+                )
+            )
+
+    def _read_joints(self, component: adsk.fusion.Component, state: _CaptureState) -> None:
+        for source in (*_items(component.joints), *_items(component.asBuiltJoints)):
+            state.advance("Capturing assembly relationships")
+            identifier = state.identities.id_for("relationship", source.entityToken or source.name)
+            references = tuple(
+                state.identities.id_for(
+                    "instance", occurrence.entityToken or occurrence.fullPathName
+                )
+                for occurrence in (source.occurrenceOne, source.occurrenceTwo)
+                if occurrence is not None
+            )
+            if any(item.id == identifier for item in state.relationships):
+                continue
+            state.relationships.append(
+                EntityRecord(
+                    identifier,
+                    "kinematic_relationship",
+                    status=CaptureStatus.COMPLETE_WITH_FALLBACK,
+                    properties=property_map(
+                        {
+                            "label": source.name,
+                            "enabled": not source.isSuppressed,
+                            "motion_class": "unspecified",
+                            "source_properties_available": False,
+                        }
+                    ),
+                    references=references,
+                )
+            )
+        for occurrence in _items(component.occurrences):
+            self._read_joints(occurrence.component, state)
+
 
 def _neutral_operation_kind(object_type: str) -> str:
     normalized = object_type.casefold()
     mappings = (
+        (("box", "cylinder", "sphere", "torus", "coil"), "primitive"),
         (("extrude",), "linear_sweep"),
         (("revolve",), "rotational_sweep"),
         (("sweep",), "path_sweep"),
@@ -274,11 +419,23 @@ def _neutral_operation_kind(object_type: str) -> str:
         (("shell",), "thin_shell"),
         (("hole",), "hole"),
         (("combine",), "boolean_operation"),
-        (("pattern",), "array"),
+        (("split",), "split"),
+        (("thread",), "thread"),
+        (("rib", "web"), "rib"),
+        (("rectangularpattern",), "linear_array"),
+        (("circularpattern",), "circular_array"),
+        (("pattern",), "path_array"),
         (("mirror",), "mirror"),
+        (("copy",), "copy"),
         (("move",), "move"),
         (("scale",), "scale"),
         (("draft",), "draft"),
+        (("offsetface", "presspull"), "direct_face_offset"),
+        (("construction", "plane", "axis", "point"), "construction_feature"),
+        (("sheetmetal", "flange", "bend"), "sheet_metal_operation"),
+        (("mesh",), "mesh_operation"),
+        (("form", "freeform"), "freeform_edit"),
+        (("derived",), "derived_definition"),
     )
     for fragments, kind in mappings:
         if any(fragment in normalized for fragment in fragments):

@@ -5,6 +5,9 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import os
+import tempfile
+from contextlib import suppress
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -74,6 +77,7 @@ def document_data(document: ModelDocument) -> dict[str, JsonData]:
             "operations",
             "results",
             "relationships",
+            "configurations",
             "diagnostics",
         )
     }
@@ -117,3 +121,34 @@ def write_json(document: ModelDocument, destination: Path, *, indented: bool = F
         sort_keys=True,
     )
     destination.write_text(f"{text}\n", encoding="utf-8", newline="\n")
+
+
+def write_json_atomic(
+    document: ModelDocument, destination: Path, *, indented: bool = False
+) -> None:
+    """Write beside the destination and atomically replace it after a successful flush."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{destination.name}.", suffix=".temporary", dir=destination.parent
+    )
+    temporary = destination.parent / temporary_name
+    try:
+        data = document_data(document)
+        text = json.dumps(
+            data,
+            allow_nan=False,
+            ensure_ascii=False,
+            indent=2 if indented else None,
+            separators=None if indented else (",", ":"),
+            sort_keys=True,
+        )
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(f"{text}\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary.replace(destination)
+    except BaseException:
+        with suppress(OSError):
+            os.close(descriptor)
+        temporary.unlink(missing_ok=True)
+        raise

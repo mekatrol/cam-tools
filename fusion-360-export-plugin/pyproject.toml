@@ -8,7 +8,7 @@ select = ["A", "ANN", "ARG", "B", "BLE", "C4", "E", "EM", "ERA", "EXE", "F", "FA
 
 [tool.ruff.lint.per-file-ignores]
 # The host entry boundary reports every failure and its Protocols preserve published API names.
-"src/MekatrolModelExporter/entrypoint.py" = ["BLE001", "N802"]
+"src/MekatrolModelExporter/entrypoint.py" = ["BLE001", "N802", "N815"]
 # The host requires the entry module and runtime folder to share the display name; package
 # initializers inherit that non-standard parent package name.
 "src/MekatrolModelExporter/MekatrolModelExporter.py" = ["N999"]

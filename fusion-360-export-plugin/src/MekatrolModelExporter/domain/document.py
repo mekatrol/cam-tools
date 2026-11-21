@@ -110,6 +110,7 @@ class ModelDocument:
     operations: tuple[Operation, ...] = ()
     results: tuple[EntityRecord, ...] = ()
     relationships: tuple[EntityRecord, ...] = ()
+    configurations: tuple[EntityRecord, ...] = ()
     diagnostics: tuple[Diagnostic, ...] = ()
     coverage: Coverage = field(default_factory=Coverage)
     integrity: Integrity = field(default_factory=Integrity)

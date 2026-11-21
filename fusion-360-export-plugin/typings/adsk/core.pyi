@@ -18,8 +18,28 @@ class Matrix3D:
 class Document:
     name: str
 
+class FileDialog:
+    title: str
+    filter: str
+    initialFilename: str
+    filename: str
+    def showSave(self) -> int: ...
+
+class ProgressDialog:
+    isCancelButtonShown: bool
+    progressValue: int
+    wasCancelled: bool
+    def show(self, title: str, message: str, minimum: int, maximum: int) -> None: ...
+    def hide(self) -> None: ...
+
+class UserInterface:
+    def messageBox(self, message: str) -> int: ...
+    def createFileDialog(self) -> FileDialog: ...
+    def createProgressDialog(self) -> ProgressDialog: ...
+
 class Application:
     activeProduct: object
     activeDocument: Document
+    userInterface: UserInterface
     @staticmethod
     def get() -> Application: ...

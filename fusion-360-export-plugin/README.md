@@ -1,9 +1,8 @@
 # Mekatrol Model Exporter
 
 This repository is building a product-neutral, versioned model exporter for Autodesk Fusion.
-The developer baseline, version 1.0.0 neutral interchange contract, and typed core-capture
-pipeline are complete. The runnable entry point remains a non-writing development dialog until
-the atomic save workflow is added in Milestone D.
+The developer baseline, version 1.1.0 neutral interchange contract, typed broad-capture
+pipeline, and atomic export workflow are complete.
 
 ## Development setup
 
@@ -14,18 +13,20 @@ The plugin has no third-party runtime dependencies; `.venv` is not deployed into
 
 Preview with `.\scripts\install-plugin.ps1 -WhatIf`, then install with
 `.\scripts\install-plugin.ps1`. In Fusion, open **Utilities > Scripts and Add-Ins**, select
-**MekatrolModelExporter**, and click **Run**. It displays
-**Hello World from Mekatrol** and exits without retaining handlers or host objects.
+**MekatrolModelExporter**, and click **Run**. Choose a JSON destination. The exporter reports
+progress, supports cancellation, validates the complete graph, and atomically replaces the
+destination only after a successful capture and flushed write.
 
 For an isolated install check, pass `-DestinationRoot <folder>`.
 
 ## Current scope
 
-Milestones A through C are complete. The repository provides immutable typed records in `domain`,
+Milestones A through D are complete. The repository provides immutable typed records in `domain`,
 the JSON Schema 2020-12 contract at `schema/model.schema.json`, an authored minimal example,
 deterministic JSON serialization, and graph/integrity validation. Source-model extraction
 plus typed readers for hierarchy, parameters, sketches, common history operations, and evaluated
-body summaries. Unrecognised history entries are retained explicitly with fidelity diagnostics.
+body summaries. The breadth phase adds advanced operation classification, visual assignments,
+kinematic relationships, configurations, explicit fallbacks, and coverage reporting.
 
 Run the contract gate with:
 

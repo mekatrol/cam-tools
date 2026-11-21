@@ -1,6 +1,6 @@
 # Mekatrol product-neutral parametric model exporter: implementation plan
 
-> Status: **Milestones A-C complete (2026-11-21).** Milestones D-E remain pending.
+> Status: **Milestones A-D complete (2026-11-21).** Milestone E remains pending.
 
 ## 0. Prerequisites
 
@@ -402,12 +402,13 @@ counts until automated testing is explicitly introduced.
 - [x] Gate: initial smoke models export with complete reference graphs and explicit
   coverage summaries.
 
-### Milestone D — breadth and robustness — PENDING
+### Milestone D — breadth and robustness — COMPLETE (2026-11-21)
 
-- Add remaining operation families, assembly relationships, appearances,
+- [x] Add remaining operation families, assembly relationships, appearances,
   configurations, fallbacks, progress, cancellation, and atomic writes.
-- Gate: no encountered entity disappears silently; interruption leaves no
-  partial destination file.
+- [x] Gate: every history entity is captured as a classified record or explicit
+  diagnostic fallback; cancellation occurs before commit and failed writes remove
+  their sibling temporary file without replacing the destination.
 
 ### Milestone E — importer hand-off contract — PENDING
 

@@ -32,6 +32,7 @@ def _records(document: ModelDocument) -> Iterable[_Identified]:
     yield from document.operations
     yield from document.results
     yield from document.relationships
+    yield from document.configurations
 
 
 def _check_finite(value: object, path: str = "document") -> None:
@@ -78,7 +79,12 @@ def validate_document(document: ModelDocument) -> None:
         )
     for geometry in document.construction:
         references.extend((geometry.id, item) for item in geometry.references)
-    for record in (*document.resources, *document.results, *document.relationships):
+    for record in (
+        *document.resources,
+        *document.results,
+        *document.relationships,
+        *document.configurations,
+    ):
         references.extend((record.id, item) for item in record.references)
     missing = [(owner, target) for owner, target in references if target not in known_ids]
     if missing:

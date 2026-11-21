@@ -18,10 +18,12 @@ class Matrix3D:
 class Document:
     name: str
 
+class DialogResults:
+    DialogOK: int
+
 class FileDialog:
     title: str
     filter: str
-    initialFilename: str
     filename: str
     def showSave(self) -> int: ...
 

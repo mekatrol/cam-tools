@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
-SOURCE_ROOT = REPOSITORY_ROOT / "src" / "MekatrolModelExporter"
+SOURCE_ROOT = REPOSITORY_ROOT / "src"
 sys.path.insert(0, str(SOURCE_ROOT))
 
 type JsonValue = bool | int | float | str | list[JsonValue] | dict[str, JsonValue] | None
@@ -29,8 +29,8 @@ class _SchemaValidatorModule(Protocol):
 
 
 def _load_modules() -> tuple[_JsonWriterModule, _SchemaValidatorModule]:
-    writer = importlib.import_module("infrastructure.json_writer")
-    validator = importlib.import_module("infrastructure.schema_validator")
+    writer = importlib.import_module("MekatrolModelExporter.infrastructure.json_writer")
+    validator = importlib.import_module("MekatrolModelExporter.infrastructure.schema_validator")
     if not isinstance(writer, _JsonWriterModule):
         message = "JSON writer module does not provide the expected interface"
         raise TypeError(message)

@@ -3,11 +3,12 @@
 import math
 from typing import TYPE_CHECKING
 
-from domain.geometry import Transform
+from ...domain.geometry import Transform
 
 if TYPE_CHECKING:
     import adsk.core
-    from domain.types import JsonValue
+
+    from ...domain.types import JsonValue
 
 TRANSLATION_COLUMN = 3
 SPATIAL_ROW_COUNT = 3

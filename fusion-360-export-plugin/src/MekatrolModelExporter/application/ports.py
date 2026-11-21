@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from domain.document import ModelDocument
+    from ..domain.document import ModelDocument
 
 
 class DesignSource(Protocol):

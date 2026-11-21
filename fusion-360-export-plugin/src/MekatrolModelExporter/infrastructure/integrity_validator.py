@@ -11,7 +11,7 @@ from .json_writer import document_data
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from domain.document import ModelDocument
+    from ..domain.document import ModelDocument
 
 
 class _Identified(Protocol):

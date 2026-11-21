@@ -9,9 +9,10 @@ from typing import TYPE_CHECKING
 
 import adsk.core
 import adsk.fusion
-from application.export_service import CaptureCancelledError
-from domain.diagnostics import Coverage, Diagnostic
-from domain.document import (
+
+from ...application.export_service import CaptureCancelledError
+from ...domain.diagnostics import Coverage, Diagnostic
+from ...domain.document import (
     Conventions,
     Definition,
     DocumentInfo,
@@ -20,11 +21,10 @@ from domain.document import (
     Instance,
     ModelDocument,
 )
-from domain.expressions import ExpressionNode, Parameter
-from domain.geometry import IDENTITY_TRANSFORM, GeometryRecord
-from domain.operations import Operation
-from domain.types import CaptureStatus, Severity
-
+from ...domain.expressions import ExpressionNode, Parameter
+from ...domain.geometry import IDENTITY_TRANSFORM, GeometryRecord
+from ...domain.operations import Operation
+from ...domain.types import CaptureStatus, Severity
 from .identity_map import IdentityMap
 from .value_reader import (
     length_in_millimetres,
@@ -36,7 +36,7 @@ from .value_reader import (
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from application.ports import ProgressReporter
+    from ...application.ports import ProgressReporter
 
 
 class UnsupportedDesignError(RuntimeError):

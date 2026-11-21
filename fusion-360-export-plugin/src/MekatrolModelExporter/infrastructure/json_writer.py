@@ -11,8 +11,8 @@ from contextlib import suppress
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from domain.document import Integrity, ModelDocument
-from domain.operations import Operation
+from ..domain.document import Integrity, ModelDocument
+from ..domain.operations import Operation
 
 if TYPE_CHECKING:
     from pathlib import Path

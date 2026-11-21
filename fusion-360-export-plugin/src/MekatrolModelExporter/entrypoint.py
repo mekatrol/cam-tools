@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import adsk.core
-from adapters.source_application import ActiveDesignReader
-from application import CaptureCancelledError, CaptureService
+
+from .adapters.source_application import ActiveDesignReader
+from .application import CaptureCancelledError, CaptureService
 
 
 @dataclass(slots=True)
@@ -45,8 +46,7 @@ def run_export() -> None:
         file_dialog = user_interface.createFileDialog()
         file_dialog.title = "Export neutral parametric model"
         file_dialog.filter = "JSON model (*.json)"
-        file_dialog.initialFilename = f"{application.activeDocument.name}.json"
-        if file_dialog.showSave() != 0:
+        if file_dialog.showSave() != adsk.core.DialogResults.DialogOK:
             return
         destination = Path(file_dialog.filename)
         if destination.suffix.casefold() != ".json":

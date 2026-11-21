@@ -3,14 +3,13 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from infrastructure.integrity_validator import validate_document
-from infrastructure.json_writer import with_integrity, write_json_atomic
+from ..infrastructure.integrity_validator import validate_document
+from ..infrastructure.json_writer import with_integrity, write_json_atomic
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from domain.document import ModelDocument
-
+    from ..domain.document import ModelDocument
     from .ports import DesignSource, ProgressReporter
 
 

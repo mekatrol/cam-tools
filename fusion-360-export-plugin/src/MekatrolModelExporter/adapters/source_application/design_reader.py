@@ -73,6 +73,24 @@ def _items[T](collection: adsk.core.ObjectCollection[T]) -> Iterable[T]:
         yield collection.item(index)
 
 
+def _optional_false_bool(source: object, member: str) -> tuple[bool, bool]:
+    """Read a boolean host member that may be absent in some runtimes."""
+    try:
+        value = getattr(source, member)
+    except AttributeError, RuntimeError:
+        return False, False
+    return (value, True) if isinstance(value, bool) else (False, False)
+
+
+def _optional_str(source: object, member: str) -> str | None:
+    """Read a non-empty string host member that may be absent or inaccessible."""
+    try:
+        value = getattr(source, member)
+    except AttributeError, RuntimeError:
+        return None
+    return value if isinstance(value, str) and value else None
+
+
 @dataclass(frozen=True, slots=True)
 class ActiveDesignReader:
     """Capture the active parametric design into neutral domain records."""
@@ -153,6 +171,9 @@ class ActiveDesignReader:
 
     def _read_parameters(self, design: adsk.fusion.Design, state: _CaptureState) -> None:
         sources = tuple(_items(design.allParameters))
+        exposed_keys = {
+            source.entityToken or source.name for source in _items(design.userParameters)
+        }
         identifiers = {
             source.name: state.identities.id_for("parameter", source.entityToken or source.name)
             for source in sources
@@ -186,7 +207,7 @@ class ActiveDesignReader:
                     expression=expression,
                     dependencies=dependencies,
                     comment=source.comment,
-                    exposed=source.isUserParameter,
+                    exposed=(source.entityToken or source.name) in exposed_keys,
                 )
             )
             if unit == "unresolved":
@@ -230,6 +251,7 @@ class ActiveDesignReader:
             instance_id = state.identities.id_for(
                 "instance", source.entityToken or source.fullPathName
             )
+            suppressed, suppression_available = _optional_false_bool(source, "isSuppressed")
             state.instances.append(
                 Instance(
                     id=instance_id,
@@ -238,10 +260,21 @@ class ActiveDesignReader:
                     transform=matrix_transform(source.transform2),
                     parent_id=parent_id,
                     visible=source.isLightBulbOn,
-                    suppressed=source.isSuppressed,
+                    suppressed=suppressed,
                     grounded=source.isGrounded,
                 )
             )
+            if not suppression_available:
+                state.diagnostics.append(
+                    Diagnostic(
+                        "capture.instance_suppression_unavailable",
+                        Severity.INFORMATION,
+                        "Instance suppression state is not exposed by this runtime.",
+                        instance_id,
+                        "Treat the captured instance as active unless other evidence says "
+                        "otherwise.",
+                    )
+                )
             self._read_occurrences(source.childOccurrences, instance_id, state)
 
     def _read_sketches(self, component: adsk.fusion.Component, state: _CaptureState) -> list[str]:
@@ -309,11 +342,20 @@ class ActiveDesignReader:
     def _read_history(self, design: adsk.fusion.Design, state: _CaptureState) -> None:
         for sequence, timeline_object in enumerate(_items(design.timeline)):
             state.advance("Capturing construction history")
-            source = timeline_object.entity
-            token = source.entityToken if source is not None else f"timeline-{sequence}"
+            try:
+                source = timeline_object.entity
+            except RuntimeError:
+                source = None
+            object_type = _optional_str(source, "objectType") if source is not None else None
+            label = _optional_str(source, "name") if source is not None else None
+            label = label or f"Operation {sequence + 1}"
+            token = _optional_str(source, "entityToken") if source is not None else None
+            token = token or f"timeline-{sequence}:{object_type or 'unclassified'}"
             identifier = state.identities.id_for("operation", token)
-            label = source.name if source is not None else f"Operation {sequence + 1}"
-            kind = _neutral_operation_kind(source.objectType if source is not None else "")
+            kind = _neutral_operation_kind(object_type or "")
+            suppressed, suppression_available = _optional_false_bool(
+                timeline_object, "isSuppressed"
+            )
             status = (
                 CaptureStatus.COMPLETE_WITH_FALLBACK
                 if kind != "unclassified_operation"
@@ -342,6 +384,17 @@ class ActiveDesignReader:
                         "Preserve the operation and use evaluated body data for verification.",
                     )
                 )
+            if not suppression_available:
+                state.diagnostics.append(
+                    Diagnostic(
+                        "capture.operation_suppression_unavailable",
+                        Severity.INFORMATION,
+                        "Operation suppression state is not exposed by this runtime.",
+                        identifier,
+                        "Treat the captured operation as enabled unless other evidence says "
+                        "otherwise.",
+                    )
+                )
             state.operations.append(
                 Operation(
                     id=identifier,
@@ -349,7 +402,7 @@ class ActiveDesignReader:
                     label=label,
                     sequence=sequence,
                     status=status,
-                    enabled=not timeline_object.isSuppressed,
+                    enabled=not suppressed,
                     parameters=property_map({"history_index": sequence}),
                     diagnostic_codes=diagnostic_codes,
                 )

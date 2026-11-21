@@ -12,7 +12,8 @@ class Parameter:
     value: float
     unit: str
     comment: str
-    isUserParameter: bool
+
+class UserParameter(Parameter): ...
 
 class _CountedCollection:
     count: int
@@ -73,23 +74,18 @@ class Occurrence:
     component: Component
     transform2: Matrix3D
     isLightBulbOn: bool
-    isSuppressed: bool
     isGrounded: bool
     childOccurrences: ObjectCollection[Occurrence]
 
-class TimelineEntity:
-    name: str
-    entityToken: str
-    objectType: str
-
 class TimelineObject:
-    entity: TimelineEntity | None
+    entity: object | None
     isSuppressed: bool
 
 class Design:
     designType: int
     rootComponent: Component
     allParameters: ObjectCollection[Parameter]
+    userParameters: ObjectCollection[UserParameter]
     timeline: ObjectCollection[TimelineObject]
     configurations: ObjectCollection[Configuration]
     @staticmethod

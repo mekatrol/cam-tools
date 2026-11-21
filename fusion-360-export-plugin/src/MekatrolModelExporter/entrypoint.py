@@ -1,86 +1,33 @@
 """Host interaction and top-level exception boundary."""
 
-import importlib
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
+import adsk.core
 from adapters.source_application import ActiveDesignReader
 from application import CaptureCancelledError, CaptureService
-
-if TYPE_CHECKING:
-    from types import ModuleType
-
-
-class _UserInterface(Protocol):
-    def messageBox(self, message: str) -> int: ...
-
-    def createFileDialog(self) -> _FileDialog: ...
-
-    def createProgressDialog(self) -> _ProgressDialog: ...
-
-
-class _FileDialog(Protocol):
-    title: str
-    filter: str
-    initialFilename: str
-    filename: str
-
-    def showSave(self) -> int: ...
-
-
-class _ProgressDialog(Protocol):
-    isCancelButtonShown: bool
-    progressValue: int
-
-    @property
-    def wasCancelled(self) -> bool: ...
-
-    def show(self, title: str, message: str, minimum: int, maximum: int) -> None: ...
-
-    def hide(self) -> None: ...
-
-
-class _Application(Protocol):
-    @staticmethod
-    def get() -> _Application: ...
-
-    @property
-    def userInterface(self) -> _UserInterface: ...
-
-
-@runtime_checkable
-class _CoreModule(Protocol):
-    Application: type[_Application]
 
 
 @dataclass(slots=True)
 class _DialogProgressReporter:
-    dialog: _ProgressDialog
+    dialog: adsk.core.ProgressDialog
 
     @property
     def cancelled(self) -> bool:
         return self.dialog.wasCancelled
 
-    def update(self, completed: int, total: int, _activity: str) -> None:
+    def update(self, completed: int, total: int, activity: str) -> None:
+        del activity
         percent = min(100, max(0, round((completed / max(total, 1)) * 100)))
         self.dialog.progressValue = percent
-
-
-def _load_core_module() -> _CoreModule:
-    module: ModuleType = importlib.import_module("adsk.core")
-    if not isinstance(module, _CoreModule):
-        message = "The host core API does not provide the expected application interface"
-        raise TypeError(message)
-    return module
 
 
 def show_hello_world() -> None:
     """Show the initial milestone dialog without retaining host objects."""
     user_interface = None
     try:
-        application = _load_core_module().Application.get()
+        application = adsk.core.Application.get()
         user_interface = application.userInterface
         user_interface.messageBox("Hello World from Mekatrol")
     except Exception:
@@ -93,7 +40,7 @@ def run_export() -> None:
     user_interface = None
     progress_dialog = None
     try:
-        application = _load_core_module().Application.get()
+        application = adsk.core.Application.get()
         user_interface = application.userInterface
         file_dialog = user_interface.createFileDialog()
         file_dialog.title = "Export neutral parametric model"
@@ -104,6 +51,8 @@ def run_export() -> None:
         destination = Path(file_dialog.filename)
         if destination.suffix.casefold() != ".json":
             destination = destination.with_suffix(".json")
+        if not destination.name:
+            return
 
         progress_dialog = user_interface.createProgressDialog()
         progress_dialog.isCancelButtonShown = True

@@ -1,8 +1,9 @@
 # Mekatrol Model Exporter
 
-This repository is building a product-neutral, versioned model exporter for Autodesk Fusion.
-The developer baseline, version 1.1.0 neutral interchange contract, typed broad-capture
-pipeline, atomic export workflow, and importer hand-off contract are complete.
+This repository provides a product-neutral, versioned model exporter for Autodesk Fusion. It is a
+finite script: choose a JSON destination, capture the active parametric design, validate the model
+graph, and atomically write the result. Cancellation or capture failure does not replace the
+destination.
 
 ## Development setup
 
@@ -19,18 +20,25 @@ destination only after a successful capture and flushed write.
 
 For an isolated install check, pass `-DestinationRoot <folder>`.
 
-## Current scope
+## Export contract
 
-Milestones A through E are complete. The repository provides immutable typed records in `domain`,
-the JSON Schema 2020-12 contract at `schema/model.schema.json`, an authored minimal example,
-deterministic JSON serialization, and graph/integrity validation. Source-model extraction
-plus typed readers for hierarchy, parameters, sketches, common history operations, and evaluated
-body summaries. The breadth phase adds advanced operation classification, visual assignments,
-kinematic relationships, configurations, explicit fallbacks, and coverage reporting.
+The repository provides immutable typed records, a JSON Schema 2020-12 contract at
+`schema/model.schema.json`, deterministic serialization, referential validation, canonical SHA-256
+integrity, progress/cancellation, and an atomic writer. Capture includes hierarchy, parameters and
+dependencies, sketch summaries, ordered history classification, evaluated body summaries, visual
+assignments, joint endpoints, and configurations.
+
+The exporter reports fidelity honestly. Feature parameters and full analytic/NURBS boundary
+representation are not yet decoded completely, so affected records are marked
+`complete_with_fallback`; unknown history entries are retained as `unclassified_operation` with a
+diagnostic. A successful write does not imply exact reconstruction.
 
 Importer implementers should start with `docs/importer-guide.md`. It defines version negotiation,
 canonical integrity verification, replay ordering, selection resolution, fallback handling,
 fidelity metrics, and migration diagnostics alongside the authoritative JSON Schema.
+
+See `ARCHITECTURE.md` for boundaries, units, capture semantics, commit guarantees, known fidelity
+limits, and evolution rules. Manual host checks are in `docs/manual-smoke-models.md`.
 
 Run the contract gate with:
 
@@ -40,3 +48,6 @@ Run the contract gate with:
 
 The gate validates the example against the schema, verifies collection counts and the
 canonical SHA-256 digest, and audits domain/schema vocabulary for source-specific terms.
+
+Also run `ruff check .` and `ruff format --check .`, and confirm Pylance has no warnings or errors
+in changed Python files.

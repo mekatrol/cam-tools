@@ -26,6 +26,8 @@ if (-not $PSCmdlet.ShouldProcess($destinationPath, "Install $pluginName")) {
 }
 New-Item -ItemType Directory -Path $resolvedRoot -Force | Out-Null
 $stagingPath = Join-Path $resolvedRoot ".$pluginName.stage.$([guid]::NewGuid().ToString('N'))"
+$previousPath = Join-Path $resolvedRoot ".$pluginName.previous.$([guid]::NewGuid().ToString('N'))"
+$previousMoved = $false
 try {
     New-Item -ItemType Directory -Path $stagingPath | Out-Null
     Get-ChildItem -LiteralPath $resolvedSource -Force |
@@ -35,13 +37,25 @@ try {
         if (-not (Test-Path -LiteralPath (Join-Path $stagingPath $requiredFile) -PathType Leaf)) { throw "Staged plugin is missing required file: $requiredFile" }
     }
     if (Test-Path -LiteralPath $destinationPath) {
-        Remove-Item -LiteralPath $destinationPath -Recurse -Force
+        Move-Item -LiteralPath $destinationPath -Destination $previousPath
+        $previousMoved = $true
     }
     Move-Item -LiteralPath $stagingPath -Destination $destinationPath
+    if ($previousMoved) {
+        Remove-Item -LiteralPath $previousPath -Recurse -Force
+        $previousMoved = $false
+    }
 } catch {
+    if ($previousMoved -and -not (Test-Path -LiteralPath $destinationPath)) {
+        Move-Item -LiteralPath $previousPath -Destination $destinationPath
+        $previousMoved = $false
+    }
     throw
 } finally {
     if (Test-Path -LiteralPath $stagingPath) { Remove-Item -LiteralPath $stagingPath -Recurse -Force }
+    if (-not $previousMoved -and (Test-Path -LiteralPath $previousPath)) {
+        Remove-Item -LiteralPath $previousPath -Recurse -Force
+    }
 }
 Write-Host "Installed to: $destinationPath"
 Write-Host 'In Fusion, open Utilities > Scripts and Add-Ins, select MekatrolModelExporter, and click Run.'

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
@@ -25,7 +26,12 @@ from domain.operations import Operation
 from domain.types import CaptureStatus, Severity
 
 from .identity_map import IdentityMap
-from .value_reader import finite, matrix_transform, property_map
+from .value_reader import (
+    length_in_millimetres,
+    matrix_transform,
+    neutral_parameter_value,
+    property_map,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -146,26 +152,53 @@ class ActiveDesignReader:
         )
 
     def _read_parameters(self, design: adsk.fusion.Design, state: _CaptureState) -> None:
-        for source in _items(design.allParameters):
+        sources = tuple(_items(design.allParameters))
+        identifiers = {
+            source.name: state.identities.id_for("parameter", source.entityToken or source.name)
+            for source in sources
+        }
+        for source in sources:
             state.advance("Capturing parameters")
-            parameter_id = state.identities.id_for("parameter", source.entityToken or source.name)
+            parameter_id = identifiers[source.name]
+            value, dimension, unit = neutral_parameter_value(source.value, source.unit)
             expression = (
-                ExpressionNode("source_expression", source.expression)
+                ExpressionNode("opaque_expression", source.expression)
                 if source.expression
                 else None
+            )
+            dependencies = tuple(
+                sorted(
+                    identifier
+                    for name, identifier in identifiers.items()
+                    if name != source.name
+                    and re.search(
+                        rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])", source.expression
+                    )
+                )
             )
             state.parameters.append(
                 Parameter(
                     id=parameter_id,
                     label=source.name,
-                    value=finite(source.value, "parameter value"),
-                    dimension=source.unit,
-                    unit=source.unit,
+                    value=value,
+                    dimension=dimension,
+                    unit=unit,
                     expression=expression,
+                    dependencies=dependencies,
                     comment=source.comment,
                     exposed=source.isUserParameter,
                 )
             )
+            if unit == "unresolved":
+                state.diagnostics.append(
+                    Diagnostic(
+                        "capture.parameter_unit_unresolved",
+                        Severity.WARNING,
+                        "A parameter dimension could not be normalized to a canonical unit.",
+                        parameter_id,
+                        "Preserve the opaque expression and request an explicit unit mapping.",
+                    )
+                )
 
     def _read_component(self, component: adsk.fusion.Component, state: _CaptureState) -> str:
         definition_id = state.identities.id_for(
@@ -251,18 +284,25 @@ class ActiveDesignReader:
                     "edge_count": body.edges.count,
                     "vertex_count": body.vertices.count,
                     "bounds_min": (
-                        finite(box.minPoint.x, "bound"),
-                        finite(box.minPoint.y, "bound"),
-                        finite(box.minPoint.z, "bound"),
+                        length_in_millimetres(box.minPoint.x),
+                        length_in_millimetres(box.minPoint.y),
+                        length_in_millimetres(box.minPoint.z),
                     ),
                     "bounds_max": (
-                        finite(box.maxPoint.x, "bound"),
-                        finite(box.maxPoint.y, "bound"),
-                        finite(box.maxPoint.z, "bound"),
+                        length_in_millimetres(box.maxPoint.x),
+                        length_in_millimetres(box.maxPoint.y),
+                        length_in_millimetres(box.maxPoint.z),
                     ),
                 }
             )
-            state.results.append(EntityRecord(identifier, "body", properties=properties))
+            state.results.append(
+                EntityRecord(
+                    identifier,
+                    "body",
+                    status=CaptureStatus.COMPLETE_WITH_FALLBACK,
+                    properties=properties,
+                )
+            )
             self._read_body_appearance(body, identifier, state)
         return identifiers
 
@@ -275,11 +315,11 @@ class ActiveDesignReader:
             label = source.name if source is not None else f"Operation {sequence + 1}"
             kind = _neutral_operation_kind(source.objectType if source is not None else "")
             status = (
-                CaptureStatus.EXACT
+                CaptureStatus.COMPLETE_WITH_FALLBACK
                 if kind != "unclassified_operation"
                 else CaptureStatus.UNCLASSIFIED
             )
-            diagnostic_codes: tuple[str, ...] = ()
+            diagnostic_codes = ("capture.operation_properties_fallback",)
             if status is CaptureStatus.UNCLASSIFIED:
                 diagnostic_codes = ("capture.operation_unclassified",)
                 state.diagnostics.append(
@@ -289,6 +329,17 @@ class ActiveDesignReader:
                         "An operation was retained as an ordered neutral fallback.",
                         identifier,
                         "Use the evaluated result and preserve the operation during migration.",
+                    )
+                )
+            else:
+                state.diagnostics.append(
+                    Diagnostic(
+                        "capture.operation_properties_fallback",
+                        Severity.INFORMATION,
+                        "The operation type and order were captured without a complete typed "
+                        "parameter set.",
+                        identifier,
+                        "Preserve the operation and use evaluated body data for verification.",
                     )
                 )
             state.operations.append(

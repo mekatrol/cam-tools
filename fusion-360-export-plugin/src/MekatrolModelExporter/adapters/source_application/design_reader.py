@@ -25,7 +25,9 @@ from ...domain.expressions import ExpressionNode, Parameter
 from ...domain.geometry import IDENTITY_TRANSFORM, GeometryRecord
 from ...domain.operations import Operation
 from ...domain.types import CaptureStatus, Severity
+from .geometry_reader import evaluated_mesh, sketch_constraints, sketch_curves, sketch_dimensions
 from .identity_map import IdentityMap
+from .operation_reader import operation_properties
 from .value_reader import (
     length_in_millimetres,
     matrix_transform,
@@ -153,7 +155,7 @@ class ActiveDesignReader:
         )
         title = self.application.activeDocument.name
         return ModelDocument(
-            format=FormatInfo("neutral_parametric_model", "1.1.0", "0.4.0"),
+            format=FormatInfo("neutral_parametric_model", "1.1.0", "0.5.0"),
             document=DocumentInfo(title=title, modified_at=datetime.now(UTC).isoformat()),
             conventions=Conventions(),
             parameters=tuple(state.parameters),
@@ -283,6 +285,23 @@ class ActiveDesignReader:
             state.advance("Capturing construction geometry")
             identifier = state.identities.id_for("sketch", sketch.entityToken or sketch.name)
             identifiers.append(identifier)
+            try:
+                curves = sketch_curves(sketch)
+                constraints = sketch_constraints(sketch)
+                dimensions = sketch_dimensions(sketch)
+            except (AttributeError, RuntimeError, TypeError, ValueError) as error:
+                curves = ()
+                constraints = ()
+                dimensions = ()
+                state.diagnostics.append(
+                    Diagnostic(
+                        "capture.sketch_geometry_fallback",
+                        Severity.WARNING,
+                        "Some construction curves could not be represented.",
+                        identifier,
+                        f"Preserve the construction record; curve capture failed: {error}",
+                    )
+                )
             state.construction.append(
                 GeometryRecord(
                     identifier,
@@ -292,7 +311,10 @@ class ActiveDesignReader:
                             "label": sketch.name,
                             "visible": sketch.isVisible,
                             "curve_count": sketch.sketchCurves.count,
+                            "curves": curves,
                             "constraint_count": sketch.geometricConstraints.count,
+                            "constraints": constraints,
+                            "dimensions": dimensions,
                             "profile_count": sketch.profiles.count,
                             "transform": tuple(matrix_transform(sketch.transform).matrix),
                         }
@@ -308,6 +330,21 @@ class ActiveDesignReader:
             identifier = state.identities.id_for("body", body.entityToken or body.name)
             identifiers.append(identifier)
             box = body.boundingBox
+            body_status = CaptureStatus.APPROXIMATED
+            try:
+                mesh = evaluated_mesh(body)
+            except (AttributeError, RuntimeError, TypeError, ValueError) as error:
+                mesh = ()
+                body_status = CaptureStatus.COMPLETE_WITH_FALLBACK
+                state.diagnostics.append(
+                    Diagnostic(
+                        "capture.body_geometry_fallback",
+                        Severity.WARNING,
+                        "The evaluated body could not be tessellated.",
+                        identifier,
+                        f"Retain the body summary and retry geometry capture: {error}",
+                    )
+                )
             properties = property_map(
                 {
                     "label": body.name,
@@ -326,16 +363,28 @@ class ActiveDesignReader:
                         length_in_millimetres(box.maxPoint.y),
                         length_in_millimetres(box.maxPoint.z),
                     ),
+                    "evaluated_geometry": mesh,
                 }
             )
             state.results.append(
                 EntityRecord(
                     identifier,
                     "body",
-                    status=CaptureStatus.COMPLETE_WITH_FALLBACK,
+                    status=body_status,
                     properties=properties,
                 )
             )
+            if body_status is CaptureStatus.APPROXIMATED:
+                state.diagnostics.append(
+                    Diagnostic(
+                        "capture.body_mesh_approximated",
+                        Severity.INFORMATION,
+                        "The evaluated body was retained as a tolerance-bounded triangle mesh.",
+                        identifier,
+                        "Use the mesh for visual reconstruction and result verification; "
+                        "preserve parametric operations for editable reconstruction.",
+                    )
+                )
             self._read_body_appearance(body, identifier, state)
         return identifiers
 
@@ -403,7 +452,7 @@ class ActiveDesignReader:
                     sequence=sequence,
                     status=status,
                     enabled=not suppressed,
-                    parameters=property_map({"history_index": sequence}),
+                    parameters=operation_properties(source, kind, sequence),
                     diagnostic_codes=diagnostic_codes,
                 )
             )
@@ -513,6 +562,9 @@ class ActiveDesignReader:
 def _neutral_operation_kind(object_type: str) -> str:
     normalized = object_type.casefold()
     mappings = (
+        (("snapshot", "position"), "assembly_position"),
+        (("occurrence",), "component_instance_event"),
+        (("sketch",), "sketch_definition"),
         (("box", "cylinder", "sphere", "torus", "coil"), "primitive"),
         (("extrude",), "linear_sweep"),
         (("revolve",), "rotational_sweep"),

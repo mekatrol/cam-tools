@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from ..infrastructure.fidelity_log import write_fidelity_log_atomic
 from ..infrastructure.integrity_validator import validate_document
 from ..infrastructure.json_writer import with_integrity, write_json_atomic
 
@@ -40,4 +41,5 @@ class CaptureService:
         if progress.cancelled:
             raise CaptureCancelledError
         write_json_atomic(document, destination)
+        write_fidelity_log_atomic(document, destination)
         return document

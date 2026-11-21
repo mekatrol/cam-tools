@@ -8,6 +8,7 @@ import adsk.core
 
 from .adapters.source_application import ActiveDesignReader
 from .application import CaptureCancelledError, CaptureService
+from .infrastructure.fidelity_log import fidelity_log_path
 
 
 @dataclass(slots=True)
@@ -68,6 +69,7 @@ def run_export() -> None:
         user_interface.messageBox(
             "Export complete.\n"
             f"Saved: {destination}\n"
+            f"Details: {fidelity_log_path(destination)}\n"
             f"Exact: {coverage.exact}; fallback: {coverage.complete_with_fallback}; "
             f"approximated: {coverage.approximated}; "
             f"unclassified: {coverage.unclassified}."

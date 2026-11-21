@@ -28,10 +28,16 @@ integrity, progress/cancellation, and an atomic writer. Capture includes hierarc
 dependencies, sketch summaries, ordered history classification, evaluated body summaries, visual
 assignments, joint endpoints, and configurations.
 
-The exporter reports fidelity honestly. Feature parameters and full analytic/NURBS boundary
-representation are not yet decoded completely, so affected records are marked
-`complete_with_fallback`; unknown history entries are retained as `unclassified_operation` with a
-diagnostic. A successful write does not imply exact reconstruction.
+The exporter reports fidelity honestly. Construction records include analytic sketch curves,
+neutral constraints and dimensions. Recognized history features include available editable
+quantities, and evaluated bodies include tolerance-bounded indexed triangle meshes. Full analytic
+boundary representation and every feature subtype are not yet decoded completely, so affected
+records retain an explicit degraded status and diagnostic. A successful write does not imply exact
+parametric reconstruction.
+
+Every successful export also writes a human-readable `<model-name>.log` beside the JSON. The log
+contains only degraded or unsupported records and explains the capability that could not be
+exported, together with associated diagnostic guidance.
 
 Importer implementers should start with `docs/importer-guide.md`. It defines version negotiation,
 canonical integrity verification, replay ordering, selection resolution, fallback handling,

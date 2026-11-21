@@ -8,6 +8,55 @@ class Point3D:
     y: float
     z: float
 
+class Vector3D:
+    x: float
+    y: float
+    z: float
+
+class Line3D:
+    startPoint: Point3D
+    endPoint: Point3D
+
+class Arc3D:
+    center: Point3D
+    normal: Vector3D
+    startPoint: Point3D
+    endPoint: Point3D
+    radius: float
+    startAngle: float
+    endAngle: float
+
+class Circle3D:
+    center: Point3D
+    normal: Vector3D
+    radius: float
+
+class Ellipse3D:
+    center: Point3D
+    normal: Vector3D
+    majorAxis: Vector3D
+    majorRadius: float
+    minorRadius: float
+
+class EllipticalArc3D(Ellipse3D):
+    startAngle: float
+    endAngle: float
+
+class CurveEvaluator3D:
+    def getParameterExtents(self) -> tuple[bool, float, float]: ...
+    def getStrokes(
+        self, start_parameter: float, end_parameter: float, tolerance: float
+    ) -> tuple[bool, list[Point3D]]: ...
+
+class NurbsCurve3D:
+    degree: int
+    isPeriodic: bool
+    isRational: bool
+    controlPoints: list[Point3D]
+    knots: list[float]
+    weights: list[float]
+    evaluator: CurveEvaluator3D
+
 class BoundingBox3D:
     minPoint: Point3D
     maxPoint: Point3D

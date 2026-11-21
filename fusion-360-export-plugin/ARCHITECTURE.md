@@ -66,12 +66,17 @@ Every status is a statement about captured information, not whether the write su
 - `unclassified`: the entity remains ordered and identifiable but has no known neutral type.
 
 The current adapter captures hierarchy, transforms, parameters and opaque expressions, parameter
-dependencies, sketch summary records, operation order and neutral classifications, evaluated body
-bounds/topology counts, visual assignments, joint endpoints, and configuration identity. History
-operations currently lack full typed feature parameters, and body results contain evaluated
-summaries rather than complete analytic/NURBS boundary representation. Those records are therefore
-reported as fallback, never exact. An unrecognized history entity becomes
-`unclassified_operation` with `capture.operation_unclassified`.
+dependencies, analytic sketch curves, neutral constraints and dimensions, operation order and
+neutral classifications, available editable operation quantities, evaluated body bounds/topology
+counts and triangle meshes, visual assignments, joint endpoints, and configuration identity.
+History operations do not yet expose complete selection intent for every subtype, and body results
+do not contain complete analytic/NURBS boundary representation. Those records therefore retain an
+explicit degraded status. An unrecognized history entity becomes `unclassified_operation` with
+`capture.operation_unclassified`.
+
+Each committed model has a companion `.log` exception report. It contains only fallback,
+approximated, or unclassified records and explains the unavailable capability and related
+diagnostics. The completion dialog reports both output paths.
 
 This explicit limitation is part of the contract: a schema-valid export can be complete as a
 snapshot while still reporting degraded reconstruction fidelity.

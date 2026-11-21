@@ -44,6 +44,7 @@ FORBIDDEN_TERMS = ("autodesk", "fusion", "adsk", "mekatrol")
 AUDITED_PATHS = (
     REPOSITORY_ROOT / "schema" / "model.schema.json",
     REPOSITORY_ROOT / "examples" / "minimal-model.json",
+    REPOSITORY_ROOT / "docs" / "importer-guide.md",
     *(SOURCE_ROOT / "domain").glob("*.py"),
 )
 

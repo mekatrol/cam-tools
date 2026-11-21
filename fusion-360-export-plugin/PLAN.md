@@ -1,6 +1,6 @@
 # Mekatrol product-neutral parametric model exporter: implementation plan
 
-> Status: **Milestones A-D complete (2026-11-21).** Milestone E remains pending.
+> Status: **Milestones A-E complete (2026-11-21).**
 
 ## 0. Prerequisites
 
@@ -410,11 +410,11 @@ counts until automated testing is explicitly introduced.
   diagnostic fallback; cancellation occurs before commit and failed writes remove
   their sibling temporary file without replacing the destination.
 
-### Milestone E — importer hand-off contract — PENDING
+### Milestone E — importer hand-off contract — COMPLETE (2026-11-21)
 
-- Publish format versioning, importer guidance, replay ordering, selection
+- [x] Publish format versioning, importer guidance, replay ordering, selection
   resolution policy, fidelity metrics, and migration diagnostics.
-- Gate: an importer can be implemented from schema and documentation without
+- [x] Gate: an importer can be implemented from schema and documentation without
   importing or understanding the source application's API vocabulary.
 
 ## 10. Risks and mitigations

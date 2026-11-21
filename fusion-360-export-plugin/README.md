@@ -2,7 +2,7 @@
 
 This repository is building a product-neutral, versioned model exporter for Autodesk Fusion.
 The developer baseline, version 1.1.0 neutral interchange contract, typed broad-capture
-pipeline, and atomic export workflow are complete.
+pipeline, atomic export workflow, and importer hand-off contract are complete.
 
 ## Development setup
 
@@ -21,12 +21,16 @@ For an isolated install check, pass `-DestinationRoot <folder>`.
 
 ## Current scope
 
-Milestones A through D are complete. The repository provides immutable typed records in `domain`,
+Milestones A through E are complete. The repository provides immutable typed records in `domain`,
 the JSON Schema 2020-12 contract at `schema/model.schema.json`, an authored minimal example,
 deterministic JSON serialization, and graph/integrity validation. Source-model extraction
 plus typed readers for hierarchy, parameters, sketches, common history operations, and evaluated
 body summaries. The breadth phase adds advanced operation classification, visual assignments,
 kinematic relationships, configurations, explicit fallbacks, and coverage reporting.
+
+Importer implementers should start with `docs/importer-guide.md`. It defines version negotiation,
+canonical integrity verification, replay ordering, selection resolution, fallback handling,
+fidelity metrics, and migration diagnostics alongside the authoritative JSON Schema.
 
 Run the contract gate with:
 

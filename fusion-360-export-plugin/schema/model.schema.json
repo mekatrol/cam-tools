@@ -95,8 +95,8 @@
     },
     "geometry": {
       "type": "object", "additionalProperties": false,
-      "required": ["id", "kind", "properties"],
-      "properties": {"id": {"$ref": "#/$defs/id"}, "kind": {"type": "string"}, "properties": {"$ref": "#/$defs/extensionMap"}}
+      "required": ["id", "kind", "properties", "references"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "kind": {"type": "string"}, "properties": {"$ref": "#/$defs/extensionMap"}, "references": {"type": "array", "items": {"$ref": "#/$defs/id"}, "uniqueItems": true}}
     },
     "operation": {
       "type": "object", "additionalProperties": false,

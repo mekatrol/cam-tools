@@ -1,8 +1,9 @@
 # Mekatrol Model Exporter
 
 This repository is building a product-neutral, versioned model exporter for Autodesk Fusion.
-The developer baseline and the version 1.0.0 neutral interchange contract are complete. The
-runnable **MekatrolModelExporter** remains a Hello World script until core capture is added.
+The developer baseline, version 1.0.0 neutral interchange contract, and typed core-capture
+pipeline are complete. The runnable entry point remains a non-writing development dialog until
+the atomic save workflow is added in Milestone D.
 
 ## Development setup
 
@@ -20,10 +21,11 @@ For an isolated install check, pass `-DestinationRoot <folder>`.
 
 ## Current scope
 
-Milestones A and B are complete. Milestone B provides immutable typed records in `domain`,
+Milestones A through C are complete. The repository provides immutable typed records in `domain`,
 the JSON Schema 2020-12 contract at `schema/model.schema.json`, an authored minimal example,
 deterministic JSON serialization, and graph/integrity validation. Source-model extraction
-remains future work.
+plus typed readers for hierarchy, parameters, sketches, common history operations, and evaluated
+body summaries. Unrecognised history entries are retained explicitly with fidelity diagnostics.
 
 Run the contract gate with:
 

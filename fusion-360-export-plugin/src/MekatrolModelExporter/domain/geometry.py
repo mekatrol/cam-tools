@@ -44,3 +44,4 @@ class GeometryRecord:
     id: str
     kind: str
     properties: tuple[tuple[str, JsonValue], ...] = ()
+    references: tuple[str, ...] = ()

@@ -18,6 +18,7 @@ These rules apply to every file under this directory.
 - Host-API imports are allowed only in the source-adapter and entry-point layers.
   Domain models, schema, serializers, and general validation must remain
   host-independent.
+- Ensure Pylance checks also pass without warning or error.
 
 ## Interchange-format rules
 

@@ -76,6 +76,8 @@ def validate_document(document: ModelDocument) -> None:
             (operation.id, item)
             for item in (*operation.inputs, *operation.outputs, *operation.target_bodies)
         )
+    for geometry in document.construction:
+        references.extend((geometry.id, item) for item in geometry.references)
     for record in (*document.resources, *document.results, *document.relationships):
         references.extend((record.id, item) for item in record.references)
     missing = [(owner, target) for owner, target in references if target not in known_ids]

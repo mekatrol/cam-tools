@@ -15,6 +15,11 @@ select = ["A", "ANN", "ARG", "B", "BLE", "C4", "E", "EM", "ERA", "EXE", "F", "FA
 "src/MekatrolModelExporter/__init__.py" = ["N999"]
 "src/MekatrolModelExporter/domain/__init__.py" = ["N999"]
 "src/MekatrolModelExporter/infrastructure/__init__.py" = ["N999"]
+"src/MekatrolModelExporter/application/__init__.py" = ["N999"]
+"src/MekatrolModelExporter/adapters/__init__.py" = ["N999"]
+"src/MekatrolModelExporter/adapters/source_application/__init__.py" = ["N999"]
+# Development-only declarations preserve the host's published mixed-case API.
+"typings/adsk/*.pyi" = ["N802", "N815"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["entrypoint"]

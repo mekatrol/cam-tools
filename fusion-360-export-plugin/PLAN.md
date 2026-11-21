@@ -1,11 +1,10 @@
 # Mekatrol product-neutral parametric model exporter: implementation plan
 
-> Status: **Milestones A-B complete (2026-11-21).** Milestones C-E and source-model
-> extraction Phases 0-6 remain pending.
+> Status: **Milestones A-C complete (2026-11-21).** Milestones D-E remain pending.
 
 ## 0. Prerequisites
 
-Read AGENTS.md before commencing any steps in this plan.
+Read AGENTS.md before commencing any steps in this plan. Acknowledge you have read it.
 
 ## 1. Objective and non-negotiable constraints
 
@@ -396,11 +395,11 @@ counts until automated testing is explicitly introduced.
 - [x] Gate: examples validate; domain and schema terminology audit finds no product
   or vendor-specific names.
 
-### Milestone C — core capture — PENDING
+### Milestone C — core capture — COMPLETE (2026-11-21)
 
-- Add hierarchy, units, parameters, construction geometry, sketches, common
+- [x] Add hierarchy, units, parameters, construction geometry, sketches, common
   operations, and evaluated B-rep readers.
-- Gate: initial smoke models export with complete reference graphs and explicit
+- [x] Gate: initial smoke models export with complete reference graphs and explicit
   coverage summaries.
 
 ### Milestone D — breadth and robustness — PENDING

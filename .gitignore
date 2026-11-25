@@ -1,0 +1,6 @@
+# Fusion360Converter build output and local CAD data
+/fusion360-converter/target/
+/fusion360-converter/**/*.[fF]3[dDzZ]
+/fusion360-converter/**/*.[fF][cC][sS][tT][dD]
+/fusion360-converter/**/*.[sS][tT][eE][pP]
+/fusion360-converter/**/*.[sS][tT][pP]

@@ -1,9 +1,9 @@
 # Implementation status
 
-The repository currently contains the initial Rust binary and the planned directory structure. The binary prints `Hello, world!`; inspection, migration, and MCP integration are not implemented.
+The `inspect` command decodes local F3D/F3Z archives using cadmpeg 0.6.12 and reports decoded product definitions, occurrences, root occurrences, bodies and sketches, in text or versioned JSON. Definitions and occurrences are separate; root occurrences are not all top-level objects. Decode losses are surfaced. F3Z decoding merges documents, losing document identity in these counts. This is read-only and does not require CAD applications.
 
-- Verified locally: `cargo metadata --format-version 1 --no-deps`, `cargo check`, and `cargo test` succeed. There are currently no tests.
-- No Fusion fixtures are present. Real decoding and backend migration have not been validated.
-- Dependency APIs, supported archive variants, backend capabilities, and the actual minimum supported Rust version have not yet been investigated.
+No redistributable real Fusion fixtures are present, so successful decoding, modern archives, compression variants and count accuracy on real files remain unverified. Timeline and migration are not implemented. Next: validate against representative user-owned F3D and F3Z files and investigate document-level archive inspection and source object coverage before expanding queries.
 
-Next: complete the dependency and API investigation described in AGENTS.md, then implement and test the first read-only inspection milestone.
+cadmpeg's installed source declares Rust 1.88, but the resolved zip 9.8.2 declares 1.89; 1.89 is the locked dependency lower bound, not a tested MSRV. The local toolchain is Rust 1.100.0. Crates.io access was unavailable; the locally cached 0.6.12 was selected and locked without downgrading.
+
+The `diagnostics` command lists numbered cadmpeg loss notes with their codes and can show one at a time. It currently explains the composed sketch-name warning; other messages remain explicitly uninvestigated. The pasted real-file report demonstrates that decoding produced output on one user file, but the file itself and count accuracy were not independently verified in this workspace.

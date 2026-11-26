@@ -4,7 +4,7 @@
 
 Implement and test a cross-platform Rust CLI application, `fusion360-converter` (product name Fusion360Converter), that reads Autodesk Fusion `.f3d` and `.f3z` archives using cadmpeg, exposes their contents for inspection, and migrates models incrementally into FreeCAD or SolidCraft through MCP (Model Context Protocol).
 
-The primary deliverable is **interactive, operation-by-operation parametric migration**, not a bulk file converter. A user must be able to inspect the original design, start with the oldest timeline operation, preview each proposed reconstruction, apply it to a visible target model, inspect the result, and explicitly accept it before moving to the next operation. Preserve editable features, dependencies and constraints wherever the source and target support them. Never claim full fidelity when information is missing.
+The primary deliverable is a **diskpart-like interactive discovery and operation-by-operation parametric migration shell**, not a bulk file converter. A user must be able to inspect the original design, start with the oldest timeline operation, preview each proposed reconstruction, apply it to a visible target model, inspect the result, and explicitly accept it before moving to the next operation. Preserve editable features, dependencies and constraints wherever the source and target support them. Never claim full fidelity when information is missing.
 
 ## Instructions for the coding agent
 
@@ -26,6 +26,7 @@ The primary deliverable is **interactive, operation-by-operation parametric migr
 5. Use real MCP clients to create editable models inside FreeCAD and SolidCraft, with visible desktop sessions as the intended interactive mode. Headless mode is suitable for tests, not a substitute for visible review.
 6. Export/save the accepted destination state on explicit request and optionally export neutral formats such as STEP if the installed backend or verified codec supports them. No automatic bulk reconstruction or default geometry fallback.
 7. Provide human-readable terminal output and machine-readable JSON for read-only queries and reports. Diagnostics go to stderr, especially when stdout is JSON.
+8. Make a persistent interactive shell the primary experience: open a source, explore and select documents, components and operations, choose a target, and request creation of the selected operation without restarting the CLI.
 
 ## Dependency and feasibility investigation (first milestone)
 
@@ -101,7 +102,11 @@ For F3Z, retain document-level histories and external reference edges when avail
 
 ## CLI contract
 
-Use clap subcommands; provide `--help`, descriptive errors and stable JSON schemas with version fields. Names below are the intended user interface, not existing APIs. Implement in milestones and document any intentional deviations.
+Provide a diskpart-like interactive shell as the primary user experience, launched by running `fusion360-converter` without a subcommand. The user can open a source file, list components by name, select an active component, list its operations in original timeline order, select an operation and request its creation in a chosen FreeCAD or SolidCraft MCP target. Keep the shell open across these actions. Show the active source, document/component, selected operation and target in the prompt or `status`; provide contextual `help`, clear errors and a way to clear or change selections. Support quoted names and paths containing spaces or Unicode. Resolve unique names or stable IDs; if names are ambiguous, list candidates and require an unambiguous selection. Distinguish component definitions from occurrences and preserve document context. Opening or changing a source must not silently discard an active migration session or an unaccepted operation.
+
+Discovery and selection are read-only and do not require a CAD application or MCP connection. List only information actually exposed by the decoder; show unavailable history and unknown fields explicitly. Selecting an operation for inspection does not change the migration cursor or bypass original timeline order, approved dependencies or pending review. A `create` request for the selected operation prepares and previews its plan, then requires explicit apply confirmation and a separate acceptance after visual review. If the selected operation is not eligible, explain the earliest required operation or unresolved dependencies; never automatically create prerequisites or advance past them. Select or connect a target explicitly, and retain the existing checkpoint, recovery, session and noninteractive safeguards.
+
+Provide clap subcommands as complementary entry points for scripting and direct queries; provide `--help`, descriptive errors and stable JSON schemas with version fields. The following names are intended interfaces, not claims about existing APIs. Implement in milestones and document any intentional deviations.
 
 ```text
 fusion360-converter inspect model.f3d [--json]
@@ -121,9 +126,31 @@ fusion360-converter migrate status --session PATH [--json]
 fusion360-converter migrate report --session PATH [--json]
 ```
 
-`start` and `resume` open an interactive command loop with commands such as `status`, `timeline`, `show`, `preview`, `apply`, `accept`, `reject`, `retry`, `skip`, `save`, `quit`, `help`. `apply` requires an explicit confirmation of the prepared plan. `accept` requires a separate explicit decision after the model changes. Do not combine these gates. `accept` advances the cursor to the next operation but does not execute it. `skip` requires a reason and confirmation and never implicitly satisfies downstream dependencies. `quit` preserves durable state and clearly identifies any unaccepted operation. EOF/Ctrl-C must never imply approval. When stdin is not interactive, refuse mutation workflows unless an explicitly designed equivalent per-operation approval mechanism exists; do not provide `--yes` or an automatic accept-all option in the initial release.
+The shell and `start`/`resume` support an interactive command loop with commands such as `status`, `timeline`, `show`, `preview`, `apply`, `accept`, `reject`, `retry`, `skip`, `save`, `quit`, `help`. `apply` requires an explicit confirmation of the prepared plan. `accept` requires a separate explicit decision after the model changes. Do not combine these gates. `accept` advances the cursor to the next operation but does not execute it. `skip` requires a reason and confirmation and never implicitly satisfies downstream dependencies. `quit` preserves durable state and clearly identifies any unaccepted operation. EOF/Ctrl-C must never imply approval. When stdin is not interactive, refuse mutation workflows unless an explicitly designed equivalent per-operation approval mechanism exists; do not provide `--yes` or an automatic accept-all option in the initial release.
 
-Example interaction (illustrative, not a claim about available decoder data):
+Example discovery and creation interaction (illustrative command names and data, not a claim about available decoder or backend support):
+
+```text
+fusion360-converter> open "Bracket assembly.f3z"
+fusion360-converter> list components
+1  Bracket  [document: Main, id: component-1]
+fusion360-converter> select component "Bracket"
+fusion360-converter> list operations
+1  Sketch1   sketch
+2  Extrude1  extrude
+fusion360-converter> select operation "Sketch1"
+fusion360-converter> target freecad
+fusion360-converter> create
+Plan: create Sketch1 in FreeCAD; prerequisites and fidelity limitations shown.
+Apply this plan? [y/N] y
+Applied. Inspect the result in FreeCAD.
+Accept operation Sketch1? [y/N] y
+Accepted. Extrude1 has not been applied.
+```
+
+The equivalent review flow may expose separate `preview`, `apply` and `accept` commands; the same independent approval gates apply to `create`.
+
+Additional review example (illustrative, not a claim about available decoder data):
 
 ```text
 Document: Bracket | Target: FreeCAD | Accepted: 0/4
@@ -190,8 +217,8 @@ Validate using entity counts, sketch geometry/constraint state, operation result
 ## Implementation milestones
 
 1. Repository audit and dependency/API spike. Establish compiling CLI, source capability matrix, real fixture availability, current-format limitations and MVP scope. Run inspection on real fixtures when available.
-2. Read-only inspection and query commands, JSON schema, stable source IDs and diagnostics. Test invalid inputs, modern compression support where fixtures permit, F3Z reference handling and unknown timeline fields.
-3. Pure migration planner and persistent session/state machine. Implement interactive review flow with a fake backend and deterministic test fixtures. Prove no automatic advancement or mutation before approval.
+2. Read-only interactive discovery shell and complementary inspection and query commands, JSON schema, stable source IDs and diagnostics. Support opening a file, listing and selecting components and inspecting their operations in one session. Test invalid inputs, modern compression support where fixtures permit, F3Z reference handling and unknown timeline fields.
+3. Pure migration planner and persistent session/state machine. Integrate selected-operation creation into the discovery shell and implement interactive review flow with a fake backend and deterministic test fixtures. Prove no automatic advancement or mutation before approval.
 4. MCP client and capability discovery. Implement configurable connection and tool listing. Add a local mock MCP server or test harness that exercises protocol, tool errors, timeouts and cleanup.
 5. First real backend vertical slice: a new visible document, source sketch, one extrusion, checkpoint/reject/retry, accept, resume and explicit save. Select whichever backend has the necessary verified capabilities first; implement the other next. If real timeline decoding is blocked, label synthetic operation testing as synthetic; do not misrepresent it as Fusion migration.
 6. Expand supported operations, F3Z reference handling and validation. Add optional explicit neutral/native exports only when verified. Document limitations and manual resolution workflows.
@@ -205,7 +232,9 @@ Use `cargo fmt --all -- --check`, `cargo check --locked --all-targets`, `cargo c
 
 Required acceptance cases:
 
-- Read-only queries perform zero destination mutations and work without CAD software installed.
+- Read-only queries and interactive discovery perform zero destination mutations and work without CAD software installed.
+- In one shell session, open a source, list and select a component by unambiguous name or ID, list its operations in source order, select one, and choose either target. Ambiguous names require disambiguation; paths and names with spaces and Unicode work.
+- Creating a selected operation follows the preview, apply confirmation and separate acceptance gates; selecting a later operation cannot bypass ordering, dependencies or pending review.
 - Timeline ordering is preserved; oldest available operation is first. Unknown/missing history is reported, not generated.
 - A prepared operation makes no mutating calls; declining apply makes none either.
 - Applying operation N does not apply N+1, even on success; accepting N does not execute N+1.
@@ -219,4 +248,4 @@ Required acceptance cases:
 
 ## Final handoff
 
-Update README with build instructions, CLI examples, sample interactive transcript, config setup for each backend, supported formats and feature limitations. Include a practical first-run workflow from inspection to saving an accepted model. Summarize files changed, commands actually run and their outcomes, real vs mock verification, remaining issues and next concrete milestone. Do not claim support for the newest Fusion files without testing representative files or explicitly describing the evidence and limits.
+Update README with build instructions, CLI examples, sample interactive transcript, config setup for each backend, supported formats and feature limitations. Include a practical first-run interactive workflow from opening a source and selecting a component and operation through choosing a target, review and saving an accepted model. Summarize files changed, commands actually run and their outcomes, real vs mock verification, remaining issues and next concrete milestone. Do not claim support for the newest Fusion files without testing representative files or explicitly describing the evidence and limits.

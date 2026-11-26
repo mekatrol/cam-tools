@@ -7,7 +7,12 @@ cargo build --locked
 cargo run --locked -- inspect "path/to/model.f3d"
 cargo run --locked -- inspect "path/to/assembly.f3z" --json
 cargo run --locked -- inspect "path/to/model.f3d" --json --output "report.json"
+cargo run --locked -- query "path/to/model.f3d" components
+cargo run --locked -- query "path/to/model.f3d" sketches --json --output "sketches.json"
+cargo run --locked -- query "path/to/model.f3d" sketches --component COMPONENT_ID
 ```
+
+Component queries list definitions and occurrences separately. Sketch filtering uses a decoded component definition ID and its decoded ownership links. JSON contains the decoder's records, including available placement and references; it is an inspection report, not an export into a CAD application. IDs are decoder identities and are not guaranteed to remain stable across decoder versions. Sketch names may be synthesized; consult `diagnostics` for decoder losses.
 
 The command decodes locally using cadmpeg; Fusion and a target CAD application are not required. It reports decoded product definitions, occurrences, root occurrences, bodies and sketches. Root occurrences are not a count of every kind of top-level Fusion object. Decoder losses are reported as warnings. JSON output has a schema version and includes warnings; errors go to stderr. Extensions are case-insensitive, and file contents are validated by the decoder.
 

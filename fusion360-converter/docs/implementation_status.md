@@ -1,5 +1,7 @@
 # Implementation status
 
+`query PATH components` lists decoded definitions and occurrences separately; `query PATH sketches` lists decoded sketches and supports `--component` using decoded ownership links. Both support versioned JSON and new-file output. These are inspection reports, not CAD exports; IDs are decoder identities, not durable migration IDs. Coverage and ownership accuracy on real fixtures remain unverified. F3Z document identity remains merged. Next, validate these listings against a user-owned archive and implement reviewed export only after source semantics and target capabilities are verified.
+
 The `inspect` command decodes local F3D/F3Z archives using cadmpeg 0.6.12 and reports decoded product definitions, occurrences, root occurrences, bodies and sketches, in text or versioned JSON. Definitions and occurrences are separate; root occurrences are not all top-level objects. Decode losses are surfaced. F3Z decoding merges documents, losing document identity in these counts. This is read-only and does not require CAD applications.
 
 No redistributable real Fusion fixtures are present, so successful decoding, modern archives, compression variants and count accuracy on real files remain unverified. Timeline and migration are not implemented. Next: validate against representative user-owned F3D and F3Z files and investigate document-level archive inspection and source object coverage before expanding queries.

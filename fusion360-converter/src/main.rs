@@ -14,6 +14,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// List decoded component definitions or sketches.
+    Query {
+        path: PathBuf,
+        #[command(subcommand)]
+        query: Query,
+    },
     /// Read an archive and report decoded model structure.
     Inspect {
         path: PathBuf,
@@ -36,6 +42,26 @@ enum Command {
     },
 }
 
+#[derive(Subcommand)]
+enum Query {
+    /// List component definitions and their separate occurrences.
+    Components {
+        #[arg(long)]
+        json: bool,
+        #[arg(short, long, requires = "json")]
+        output: Option<PathBuf>,
+    },
+    /// List sketches, optionally limited to a component definition ID.
+    Sketches {
+        #[arg(long)]
+        component: Option<String>,
+        #[arg(long)]
+        json: bool,
+        #[arg(short, long, requires = "json")]
+        output: Option<PathBuf>,
+    },
+}
+
 fn main() {
     if let Err(error) = run() {
         eprintln!("error: {error}");
@@ -45,6 +71,44 @@ fn main() {
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     match Cli::parse().command {
+        Command::Query { path, query } => {
+            let (kind, component, json, output) = match query {
+                Query::Components { json, output } => ("components", None, json, output),
+                Query::Sketches {
+                    component,
+                    json,
+                    output,
+                } => ("sketches", component, json, output),
+            };
+            let result = fusion360_converter::query(&path, kind, component.as_deref())?;
+            if json {
+                write_json(&result, output.as_deref())?;
+            } else {
+                for key in if kind == "components" {
+                    vec!["components", "occurrences"]
+                } else {
+                    vec!["sketches"]
+                } {
+                    println!("{key}:");
+                    for item in result[key].as_array().unwrap() {
+                        let name = item
+                            .get("label")
+                            .or_else(|| item.get("name"))
+                            .or_else(|| item.get("source_name"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("(unnamed)");
+                        println!(
+                            "  {}  {}",
+                            item["id"].as_str().unwrap_or("(unknown ID)"),
+                            name
+                        );
+                    }
+                }
+                for warning in result["warnings"].as_array().unwrap() {
+                    eprintln!("warning: {}", warning.as_str().unwrap_or("unknown warning"));
+                }
+            }
+        }
         Command::Inspect { path, json, output } => {
             let result = fusion360_converter::inspect(&path)?;
             if json {

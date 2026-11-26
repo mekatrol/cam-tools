@@ -36,3 +36,24 @@ fn help_describes_inspect() {
     assert!(output.status.success());
     assert!(String::from_utf8_lossy(&output.stdout).contains("inspect"));
 }
+
+#[test]
+fn query_help_and_invalid_archives_are_safe() {
+    let exe = env!("CARGO_BIN_EXE_fusion360-converter");
+    let help = Command::new(exe)
+        .args(["query", "model.f3d", "--help"])
+        .output()
+        .unwrap();
+    let text = String::from_utf8_lossy(&help.stdout);
+    assert!(help.status.success());
+    assert!(text.contains("components") && text.contains("sketches"));
+    for kind in ["components", "sketches"] {
+        let output = Command::new(exe)
+            .args(["query", "model.txt", kind, "--json"])
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        assert!(output.stdout.is_empty());
+        assert!(!output.stderr.is_empty());
+    }
+}

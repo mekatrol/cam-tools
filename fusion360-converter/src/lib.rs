@@ -3,6 +3,63 @@ use cadmpeg_ir::{Codec, DecodeOptions, products::OccurrenceParent};
 use serde::Serialize;
 use std::{error::Error, fs::File, path::Path};
 
+/// List decoder records. IDs are decoder identities, not durable migration IDs.
+pub fn query(
+    path: &Path,
+    kind: &str,
+    component: Option<&str>,
+) -> Result<serde_json::Value, Box<dyn Error>> {
+    let ext = path.extension().and_then(|x| x.to_str()).unwrap_or("");
+    if !ext.eq_ignore_ascii_case("f3d") && !ext.eq_ignore_ascii_case("f3z") {
+        return Err("expected a .f3d or .f3z file".into());
+    }
+    let result = F3dCodec.decode(&mut File::open(path)?, &DecodeOptions::default())?;
+    let model = &result.ir().model;
+    let definitions = serde_json::to_value(&model.product_definitions)?;
+    let sketches = serde_json::to_value(&model.sketches)?;
+    let mut warnings: Vec<String> = result
+        .report()
+        .losses
+        .iter()
+        .map(|loss| format!("{:?}: {}", loss.severity, loss.message))
+        .collect();
+    warnings.push("IDs are decoder identities and are not guaranteed durable across decoder versions. Decoded data may be incomplete.".into());
+    if ext.eq_ignore_ascii_case("f3z") {
+        warnings.push("F3Z decoding merges documents; document identity is not preserved.".into());
+    }
+    let mut output = serde_json::json!({"schema_version": 1, "warnings": warnings});
+    match kind {
+        "components" => {
+            output["components"] = definitions;
+            output["occurrences"] = serde_json::to_value(&model.occurrences)?;
+        }
+        "sketches" => {
+            let selected = if let Some(id) = component {
+                let definition = definitions
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|d| d["id"].as_str() == Some(id))
+                    .ok_or_else(|| format!("component {id:?} not found"))?;
+                let owned = definition.get("sketches").and_then(|v| v.as_array());
+                sketches
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .filter(|s| owned.is_some_and(|ids| ids.contains(&s["id"])))
+                    .cloned()
+                    .collect::<Vec<_>>()
+            } else {
+                sketches.as_array().unwrap().clone()
+            };
+            output["sketches"] = serde_json::to_value(selected)?;
+            output["component_filter"] = serde_json::to_value(component)?;
+        }
+        _ => return Err("unknown query".into()),
+    }
+    Ok(output)
+}
+
 #[derive(Debug, Serialize)]
 pub struct Structure {
     pub schema_version: u32,
